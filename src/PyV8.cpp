@@ -16,9 +16,17 @@ namespace v8 {
   }
 }
 
+class MallocArrayBufferAllocator : public v8::ArrayBuffer::Allocator {
+public:
+  virtual void* Allocate(size_t length) { void* foo = malloc(length); memset(foo, 0, length); return foo; }
+  virtual void* AllocateUninitialized(size_t length) { return malloc(length); }
+  virtual void Free(void* data, size_t length) { free(data); }
+};
+
 BOOST_PYTHON_MODULE(_PyV8)
 {
   v8::internal::FLAG_harmony_observation = true;
+  V8::SetArrayBufferAllocator(new MallocArrayBufferAllocator());
   CJavascriptException::Expose();
   CWrapper::Expose(); 
   CContext::Expose();
