@@ -12,7 +12,7 @@
 // So we can enable stuff that makes v8 support things we need.
 namespace v8 {
   namespace internal {
-    extern bool FLAG_harmony_observation;
+    extern bool FLAG_harmony_proxies;
   }
 }
 
@@ -25,7 +25,7 @@ public:
 
 BOOST_PYTHON_MODULE(_PyV8)
 {
-  v8::internal::FLAG_harmony_observation = true;
+  v8::internal::FLAG_harmony_proxies = true;
   V8::SetArrayBufferAllocator(new MallocArrayBufferAllocator());
   CJavascriptException::Expose();
   CWrapper::Expose(); 
