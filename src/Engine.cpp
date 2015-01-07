@@ -398,7 +398,7 @@ py::object CEngine::InternalPreCompile(v8::Handle<v8::String> src)
   Py_END_ALLOW_THREADS
 
   if (!precompiled.get()) CJavascriptException::ThrowIf(m_isolate, try_catch);
-  if (precompiled->HasError()) throw CJavascriptException("fail to compile", ::PyExc_SyntaxError);
+  if (precompiled->HasError()) throw CJavascriptException("fail to compile", "SyntaxError");
 
   py::object obj(py::handle<>(::PyByteArray_FromStringAndSize(precompiled->Data(), precompiled->Length())));
 

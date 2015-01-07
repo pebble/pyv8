@@ -117,7 +117,7 @@ public:
 class CJavascriptException : public std::runtime_error
 {
   v8::Isolate *m_isolate;
-  PyObject *m_type;
+  std::string m_type;
 
   v8::Persistent<v8::Value> m_exc, m_stack;
   v8::Persistent<v8::Message> m_msg;
@@ -126,7 +126,7 @@ class CJavascriptException : public std::runtime_error
 
   static const std::string Extract(v8::Isolate *isolate, v8::TryCatch& try_catch);
 protected:
-  CJavascriptException(v8::Isolate *isolate, v8::TryCatch& try_catch, PyObject *type)
+  CJavascriptException(v8::Isolate *isolate, v8::TryCatch& try_catch, std::string type)
     : std::runtime_error(Extract(isolate, try_catch)), m_isolate(isolate), m_type(type)
   {
     v8::HandleScope handle_scope(m_isolate);
@@ -136,7 +136,7 @@ protected:
     m_msg.Reset(m_isolate, try_catch.Message());
   }
 public:
-  CJavascriptException(const std::string& msg, PyObject *type = NULL)
+  CJavascriptException(const std::string& msg, std::string type = "")
     : std::runtime_error(msg), m_isolate(v8::Isolate::GetCurrent()), m_type(type)
   {
   }

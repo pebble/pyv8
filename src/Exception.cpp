@@ -1,6 +1,7 @@
 #include "Exception.h"
 
 #include <sstream>
+#include <map>
 
 std::ostream& operator<<(std::ostream& os, const CJavascriptException& ex)
 {
@@ -307,14 +308,12 @@ const std::string CJavascriptException::Extract(v8::Isolate *isolate, v8::TryCat
   return oss.str();
 }
 
-static struct {
-  const char *name;
-  PyObject *type;
-} SupportErrors[] = {
-  { "RangeError",     ::PyExc_IndexError },
-  { "ReferenceError", ::PyExc_ReferenceError },
-  { "SyntaxError",    ::PyExc_SyntaxError },
-  { "TypeError",      ::PyExc_TypeError }
+std::map<std::string, std::string> SupportErrors = {
+  { "RangeError", "_jsclass_RangeError" },
+  { "ReferenceError", "_jsclass_ReferenceError" },
+  { "SyntaxError", "_jsclass_SyntaxError" },
+  { "TypeError", "_jsclass_TypeError" },
+  { "InternalError", "_jsclass_InternalError" },
 };
 
 void CJavascriptException::ThrowIf(v8::Isolate *isolate, v8::TryCatch& try_catch)
@@ -323,8 +322,8 @@ void CJavascriptException::ThrowIf(v8::Isolate *isolate, v8::TryCatch& try_catch
   {
     v8::HandleScope handle_scope(isolate);
 
-    PyObject *type = NULL;
     v8::Handle<v8::Value> obj = try_catch.Exception();
+    std::string str_name = "";
 
     if (obj->IsObject())
     {
@@ -334,18 +333,11 @@ void CJavascriptException::ThrowIf(v8::Isolate *isolate, v8::TryCatch& try_catch
       if (exc->Has(name))
       {
         v8::String::Utf8Value s(v8::Handle<v8::String>::Cast(exc->Get(name)));
-
-        for (size_t i=0; i<_countof(SupportErrors); i++)
-        {
-          if (strnicmp(SupportErrors[i].name, *s, s.length()) == 0)
-          {
-            type = SupportErrors[i].type;
-          }
-        }
+        str_name = *s;
       }
     }
 
-    throw CJavascriptException(isolate, try_catch, type);
+    throw CJavascriptException(isolate, try_catch, str_name);
   }
 }
 
@@ -353,43 +345,42 @@ void ExceptionTranslator::Translate(CJavascriptException const& ex)
 {
   CPythonGIL python_gil;
 
-  if (ex.m_type)
-  {
-    ::PyErr_SetString(ex.m_type, ex.what());
-  }
-  else
-  {
-    v8::HandleScope handle_scope(v8::Isolate::GetCurrent());
+  v8::HandleScope handle_scope(v8::Isolate::GetCurrent());
 
-    if (!ex.Exception().IsEmpty() && ex.Exception()->IsObject())
+  if (!ex.Exception().IsEmpty() && ex.Exception()->IsObject())
+  {
+    v8::Handle<v8::Object> obj = ex.Exception()->ToObject();
+
+    v8::Handle<v8::Value> exc_type = obj->GetHiddenValue(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), "exc_type"));
+    v8::Handle<v8::Value> exc_value = obj->GetHiddenValue(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), "exc_value"));
+
+    if (!exc_type.IsEmpty() && !exc_value.IsEmpty())
     {
-      v8::Handle<v8::Object> obj = ex.Exception()->ToObject();
+      std::auto_ptr<py::object> type(static_cast<py::object *>(v8::Handle<v8::External>::Cast(exc_type)->Value())),
+                                value(static_cast<py::object *>(v8::Handle<v8::External>::Cast(exc_value)->Value()));
 
-      v8::Handle<v8::Value> exc_type = obj->GetHiddenValue(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), "exc_type"));
-      v8::Handle<v8::Value> exc_value = obj->GetHiddenValue(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), "exc_value"));
+      ::PyErr_SetObject(type->ptr(), value->ptr());
 
-      if (!exc_type.IsEmpty() && !exc_value.IsEmpty())
-      {
-        std::auto_ptr<py::object> type(static_cast<py::object *>(v8::Handle<v8::External>::Cast(exc_type)->Value())),
-                                  value(static_cast<py::object *>(v8::Handle<v8::External>::Cast(exc_value)->Value()));
-
-        ::PyErr_SetObject(type->ptr(), value->ptr());
-
-        return;
-      }
+      return;
     }
-
-    // Boost::Python doesn't support inherite from Python class,
-    // so, just use some workaround to throw our custom exception
-    //
-    // http://www.language-binding.net/pyplusplus/troubleshooting_guide/exceptions/exceptions.html
-
-    py::object impl(ex);
-    py::object clazz = impl.attr("_jsclass");
-    py::object err = clazz(impl);
-
-    ::PyErr_SetObject(clazz.ptr(), py::incref(err.ptr()));
   }
+
+  // Boost::Python doesn't support inherite from Python class,
+  // so, just use some workaround to throw our custom exception
+  //
+  // http://www.language-binding.net/pyplusplus/troubleshooting_guide/exceptions/exceptions.html
+
+  py::object impl(ex);
+  
+  std::string impl_name = "_jsclass";
+  if (ex.m_type != "") {
+    impl_name = SupportErrors[ex.m_type];
+  }
+  
+  py::object clazz = impl.attr(impl_name.c_str());
+  py::object err = clazz(impl);
+
+  ::PyErr_SetObject(clazz.ptr(), py::incref(err.ptr()));
 }
 
 void *ExceptionTranslator::Convertible(PyObject* obj)

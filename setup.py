@@ -215,7 +215,7 @@ elif is_linux or is_freebsd:
         library_dirs += [os.path.join(PYTHON_HOME, 'lib/python%d.%d' % (major, minor))]
         include_dirs += [os.path.join(PYTHON_HOME, 'include')]
 
-    extra_compile_args += ["-Wno-write-strings"]
+    extra_compile_args += ["-Wno-write-strings", "-std=c++11"]
 
     if BOOST_STATIC_LINK:
         extra_link_args += [os.path.join(boost_lib_dir, "lib%s.a") % lib for lib in boost_libs]
@@ -292,7 +292,7 @@ elif is_osx: # contribute by progrium and alec
     else:
         extra_compile_args += ['-g', '-O3']
 
-    extra_compile_args += ["-Wdeprecated-writable-strings", "-stdlib=libc++"]
+    extra_compile_args += ["-Wdeprecated-writable-strings", "-stdlib=libc++", "-std=c++11"]
 
 else:
     print("ERROR: unsupported OS (%s) and platform (%s)" % (os.name, sys.platform))

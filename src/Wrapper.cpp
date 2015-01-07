@@ -24,7 +24,7 @@
 
 #define CHECK_V8_CONTEXT() \
   if (!v8i::Isolate::Current()->context()) { \
-    throw CJavascriptException("Javascript object out of context", PyExc_UnboundLocalError); \
+    throw CJavascriptException("Javascript object out of context" "ReferenceError"); \
   }
 
 std::ostream& operator <<(std::ostream& os, const CJavascriptObject& obj)
@@ -308,7 +308,7 @@ void CPythonObject::NamedGetter(v8::Local<v8::String> prop, const v8::PropertyCa
     py::object getter = attr.attr("fget");
 
     if (getter.is_none())
-      throw CJavascriptException("unreadable attribute", ::PyExc_AttributeError);
+      throw CJavascriptException("unreadable attribute", "InternalError");
 
     attr = getter();
   }
@@ -363,7 +363,7 @@ void CPythonObject::NamedSetter(v8::Local<v8::String> prop, v8::Local<v8::Value>
         py::object setter = attr.attr("fset");
 
         if (setter.is_none())
-          throw CJavascriptException("can't set attribute", ::PyExc_AttributeError);
+          throw CJavascriptException("can't set attribute", "InternalError");
 
         setter(newval);
 
@@ -428,7 +428,7 @@ void CPythonObject::NamedDeleter(v8::Local<v8::String> prop, const v8::PropertyC
       py::object deleter = attr.attr("fdel");
 
       if (deleter.is_none())
-        throw CJavascriptException("can't delete attribute", ::PyExc_AttributeError);
+        throw CJavascriptException("can't delete attribute", "InternalError");
 
       CALLBACK_RETURN(py::extract<bool>(deleter()));
     }
@@ -831,7 +831,7 @@ v8::Handle<v8::Value> CPythonObject::WrapInternal(py::object obj)
 
     if (jsobj.Object().IsEmpty())
     {
-      throw CJavascriptException("Refer to a null object", ::PyExc_AttributeError);
+      throw CJavascriptException("Refer to a null object", "InternalError");
     }
 
   #ifdef SUPPORT_TRACE_LIFECYCLE
@@ -956,7 +956,7 @@ void CJavascriptObject::CheckAttr(v8::Handle<v8::String> name) const
     msg << "'" << *v8::String::Utf8Value(Object()->ObjectProtoToString())
         << "' object has no attribute '" << *v8::String::Utf8Value(name) << "'";
 
-    throw CJavascriptException(msg.str(), ::PyExc_AttributeError);
+    throw CJavascriptException(msg.str(), "InternalError");
   }
 }
 
@@ -1138,7 +1138,7 @@ CJavascriptObject::operator long() const
   v8::HandleScope handle_scope(v8::Isolate::GetCurrent());
 
   if (m_obj.IsEmpty())
-    throw CJavascriptException("argument must be a string or a number, not 'NoneType'", ::PyExc_TypeError);
+    throw CJavascriptException("argument must be a string or a number, not 'NoneType'", "TypeError");
 
   return Object()->Int32Value();
 }
@@ -1149,7 +1149,7 @@ CJavascriptObject::operator double() const
   v8::HandleScope handle_scope(v8::Isolate::GetCurrent());
 
   if (m_obj.IsEmpty())
-    throw CJavascriptException("argument must be a string or a number, not 'NoneType'", ::PyExc_TypeError);
+    throw CJavascriptException("argument must be a string or a number, not 'NoneType'", "TypeError");
 
   return Object()->NumberValue();
 }
@@ -1376,7 +1376,7 @@ py::object CJavascriptArray::GetItem(py::object key)
     return CJavascriptObject::Wrap(value, Object());
   }
 
-  throw CJavascriptException("list indices must be integers", ::PyExc_TypeError);
+  throw CJavascriptException("list indices must be integers", "TypeError");
 }
 
 py::object CJavascriptArray::SetItem(py::object key, py::object value)
@@ -1511,7 +1511,7 @@ py::object CJavascriptArray::DelItem(py::object key)
     return value;
   }
 
-  throw CJavascriptException("list indices must be integers", ::PyExc_TypeError);
+  throw CJavascriptException("list indices must be integers", "TypeError");
 }
 
 bool CJavascriptArray::Contains(py::object item)
@@ -1550,12 +1550,12 @@ py::object CJavascriptFunction::CallWithArgs(py::tuple args, py::dict kwds)
 
   size_t argc = ::PyTuple_Size(args.ptr());
 
-  if (argc == 0) throw CJavascriptException("missed self argument", ::PyExc_TypeError);
+  if (argc == 0) throw CJavascriptException("missed self argument", "TypeError");
 
   py::object self = args[0];
   py::extract<CJavascriptFunction&> extractor(self);
 
-  if (!extractor.check()) throw CJavascriptException("missed self argument", ::PyExc_TypeError);
+  if (!extractor.check()) throw CJavascriptException("missed self argument", "TypeError");
 
   v8::HandleScope handle_scope(v8::Isolate::GetCurrent());
 
@@ -1615,7 +1615,7 @@ py::object CJavascriptFunction::CreateWithArgs(CJavascriptFunctionPtr proto, py:
   v8::HandleScope handle_scope(v8::Isolate::GetCurrent());
 
   if (proto->Object().IsEmpty())
-    throw CJavascriptException("Object prototype may only be an Object", ::PyExc_TypeError);
+    throw CJavascriptException("Object prototype may only be an Object", "TypeError");
 
   v8::TryCatch try_catch;
 

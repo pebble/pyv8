@@ -115,7 +115,38 @@ class JSError(Exception):
     def frames(self):
         return self.parse_stack(self.stackTrace)
 
+
+class JSReferenceError(JSError, ReferenceError):
+    def __init__(self, impl):
+        super(JSReferenceError, self).__init__(impl)
+
+
+class JSTypeError(JSError, TypeError):
+    def __init__(self, impl):
+        super(JSTypeError, self).__init__(impl)
+
+
+class JSRangeError(JSError, IndexError):
+    def __init__(self, impl):
+        super(JSRangeError, self).__init__(impl)
+
+
+class JSSyntaxError(JSError, SyntaxError):
+    def __init__(self, impl):
+        super(JSSyntaxError, self).__init__(impl)
+
+
+class JSInternalError(JSError):
+    def __init__(self, impl):
+        super(JSInternalError, self).__init__(impl)
+
+
 _PyV8._JSError._jsclass = JSError
+_PyV8._JSError._jsclass_ReferenceError = JSReferenceError
+_PyV8._JSError._jsclass_TypeError = JSTypeError
+_PyV8._JSError._jsclass_SyntaxError = JSSyntaxError
+_PyV8._JSError._jsclass_RangeError = JSRangeError
+_PyV8._JSError._jsclass_InternalError = JSInternalError
 
 JSObject = _PyV8.JSObject
 JSNull = _PyV8.JSNull
