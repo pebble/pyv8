@@ -137,7 +137,7 @@ CContext::CContext(py::object global, py::list extensions)
   {
     Handle()->Global()->Set(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), "__proto__"), CPythonObject::Wrap(global));
 
-    Py_DECREF(global.ptr());
+    //Py_DECREF(global.ptr());
   }
 }
 
