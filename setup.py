@@ -556,8 +556,8 @@ def generate_probes():
 
 def prepare_v8():
     try:
-        checkout_v8()
-        prepare_gyp()
+        #checkout_v8()
+        #prepare_gyp()
         build_v8()
         generate_probes()
     except Exception as e:
