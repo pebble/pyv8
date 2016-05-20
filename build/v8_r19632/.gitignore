@@ -29,7 +29,7 @@ shell
 shell_g
 /_*
 /build/Debug
-/build/gyp
+#/build/gyp
 /build/ipch/
 /build/Release
 /hydrogen.cfg
