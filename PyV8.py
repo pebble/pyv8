@@ -135,6 +135,26 @@ class JSSyntaxError(JSError, SyntaxError):
     def __init__(self, impl):
         super(JSSyntaxError, self).__init__(impl)
 
+    def hint(self, src):
+        hint = self.stackTrace + '\n'
+        hint += 'at %s:%s:%s:\n' % (
+            self.scriptName, self.lineNum, self.startCol)
+        # Print out the lines of source before the error:
+        start = self.startPos
+        for _ in range(0, 3):
+            if start == 0:
+                break
+            start = src.rfind('\n', 0, start)
+            start = 0 if start == -1 else start
+        if start != 0:
+            start += 1  # Skip the newline
+        end = src.find('\n', self.endPos)
+        end = (len(src) - 1) if end == -1 else end
+        hint += src[start:end] + '\n'
+        hint += (' ' * self.startCol) + ('^' * (self.endCol - self.startCol))
+        return hint
+
+
 
 class JSInternalError(JSError):
     def __init__(self, impl):
