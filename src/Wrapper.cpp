@@ -1139,6 +1139,7 @@ CJavascriptObject::operator long() const
 
   if (m_obj.IsEmpty())
     throw CJavascriptException("argument must be a string or a number, not 'NoneType'", "TypeError");
+>>>>>>> buffer/master
 
   return Object()->Int32Value();
 }
